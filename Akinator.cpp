@@ -1,9 +1,14 @@
 #include <stdio.h> 
 #include <string>
 #include <stdlib.h>
+#include <conio.h>
 #include <iostream>
 
 const int ERROR = -2;
+const char savefile[] = "savefile.txt";
+
+char GetDigit_1to2();
+char GetDigit_1to5();
 
 struct Node 
 {
@@ -34,8 +39,8 @@ struct Game
 	
 	void Choice();
 	void Play();
-	int Save(char* filename);
-	int Load(char* filename);
+	int Save(const char* filename);
+	int Load(const char* filename);
 };
 
 Node::Node(std::string data, Node* left, Node* right, Node* parent):
@@ -74,16 +79,14 @@ Tree::Tree()
 Node* Tree::Guess()
 {
 	Node* cur = m_root;
-	std::string yes = "Да"; 
-	std::string no = "Нет";
-	std::string answer;
+	char answer = 0;
 	for (;cur->m_right != NULL;)
 	{
-		printf("%s?[Да/Нет]\n", cur->m_data.c_str());
-		std::getline(std::cin, answer);
-		if (answer == yes) cur = cur->m_right;
-		else if (answer == no) cur = cur->m_left;
-		else printf("Ответ должен быть дан одним словом: Да или Нет.\n");
+		printf("%s?[1-Да/2-Нет]\n", cur->m_data.c_str());
+		answer = GetDigit_1to2();
+		if (answer == '1') cur = cur->m_right;
+		else if (answer == '2') cur = cur->m_left;
+		else printf("Ответ должен быть дан одной цифрой: 1 или 2.\n");
 	}
 	printf("Это %s.\n", cur->m_data.c_str());
 	return cur;
@@ -91,20 +94,13 @@ Node* Tree::Guess()
 
 void Tree::CheckAndAdd(Node* cur)
 {
-	printf("Верно?[Да/Нет]\n");
-	std::string yes = "Да"; 
-	std::string no = "Нет";
-	std::string answer;
-	std::getline(std::cin, answer);
-	while ((answer != no) && (answer != yes)) {
-		printf("Ответ должен быть дан одним словом: Да или Нет.\n");
-		std::getline(std::cin, answer);
-	}
-	if (answer == no) {
+	printf("Верно?[1-Да/2-Нет]\n");
+	char answer = GetDigit_1to2();
+	if (answer == '2') {
 		printf("Какого персонажа вы загадали?\n");
 		std::string name;
 		std::getline(std::cin, name);
-		printf("Напишите признак, который отличает вашего персонажа от угаданного.\n");
+		printf("Напишите признак, который отличает вашего персонажа от предложенного(с маленькой буквы).\n");
 		std::string trait;
 		std::getline(std::cin, trait);
 		cur->NewBranch(name, trait);
@@ -181,27 +177,40 @@ char GetDigit_1to5()
 	while (getchar() != '\n')
 		trigger = 1;
 	if (((c - '0') > 5) || ((c - '0') < 1) || (trigger == 1)) {
-		printf("Введите число от 1 до 5: ");
+		printf("\nВведите цифру от 1 до 5: ");
 		c = GetDigit_1to5();
+	} 
+	else return c;
+}
+
+char GetDigit_1to2()
+{
+	char c = getchar();
+	int trigger = 0;
+	while (getchar() != '\n')
+		trigger = 1;
+	if (((c - '0') > 2) || ((c - '0') < 1) || (trigger == 1)) {
+		printf("\nВведите цифру от 1 до 2: ");
+		c = GetDigit_1to2();
 	} 
 	else return c;
 }
 
 void Game::Choice()
 {
-	printf("\nИграть.[1]\nСохранить.[2]\nЗагрузить.[3]\nОпределение.[4]\nВыйти.[5]\nДля выбора введите число от 1 до 5: ");
+	printf("\n\t[1]Играть.\n\t[2]Сохранить.\n\t[3]Загрузить.\n\t[4]Определение.\n\t[5]Выйти.\n\nДля выбора введите цифру от 1 до 5: ");
 	char ch = GetDigit_1to5();
 	switch (ch) {
 		case '1': 
 		Play();
 		break;
 		case '2':
-		Save("savefile.txt");
-		printf("\nВаш прогресс был успешно созранён!\n");
+		Save(savefile);
 		Choice();
 		break;
 		case '3':
-		Load("savefile.txt");
+		Load(savefile);
+		printf("\nЗагрузка выполнена успешно!\n");
 		Choice();
 		break;
 		case '4':
@@ -220,21 +229,28 @@ void Game::Play()
 	Choice();
 }
 
-int Game::Save(char* filename)
+int Game::Save(const char* filename)
 {
-	FILE* write_file = fopen(filename, "wb");
-	if (write_file == NULL) 
-		return ERROR;
-	m_tree.Write(write_file);
-	fclose(write_file);
+	printf("\nВаше прошлое сохранение будет перезаписано. Продолжить?[1-Да/2-Нет]\n");
+	char answer = GetDigit_1to2();
+	if (answer == '1') {
+		FILE* write_file = fopen(filename, "wb");
+		if (write_file == NULL) {
+			printf("Невозможно открыть файл для сохранения.\n");
+			return ERROR;
+		}
+		m_tree.Write(write_file);
+		fclose(write_file);
+		printf("\nВаш прогресс был успешно сохранён!\n");
+	}
 	return 0;
 }
 
-int Game::Load(char* filename)
+int Game::Load(const char* filename)
 {
 	FILE* read_file = fopen(filename, "rb");
 	if (read_file == NULL) {
-		printf("Не открывается файл\n");
+		printf("Невозможно открыть файл с сохранением.\n");
 		return ERROR;
 	}
 	m_tree.Read(read_file);
